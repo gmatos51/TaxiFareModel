@@ -7,6 +7,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
+from memoized_property import memoized_property
+import mlflow
+from mlflow.tracking import MlflowClient
 
 
 class Trainer():
@@ -22,21 +25,22 @@ class Trainer():
     def set_pipeline(self):
         """defines the pipeline as a class attribute"""
         dist_pipe = Pipeline([
-            ('dist_trans', DistanceTransformer()),
-            ('stdscaler', StandardScaler())
+                            ('dist_trans', DistanceTransformer()),
+                            ('stdscaler', StandardScaler())
         ])
         time_pipe = Pipeline([
-            ('time_enc', TimeFeaturesEncoder('pickup_datetime')),
-            ('ohe', OneHotEncoder(handle_unknown='ignore'))
+                            ('time_enc', TimeFeaturesEncoder('pickup_datetime')),
+                            ('ohe', OneHotEncoder(handle_unknown='ignore'))
         ])
         preproc_pipe = ColumnTransformer([
             ('distance', dist_pipe, ["pickup_latitude", "pickup_longitude", 'dropoff_latitude', 'dropoff_longitude']),
             ('time', time_pipe, ['pickup_datetime'])
         ], remainder="drop")
         pipe = Pipeline([
-            ('preproc', preproc_pipe),
-            ('linear_model', LinearRegression())
+                        ('preproc', preproc_pipe),
+                        ('linear_model', LinearRegression())
         ])
+        self.mlflow_log_param('model', 'LinearRegression')
         return pipe
 
     def run(self):
@@ -50,9 +54,34 @@ class Trainer():
         self.y_test = y_test
         y_pred = self.run().predict(self.X_test)
         rmse = compute_rmse(y_pred, self.y_test)
+        self.mlflow_log_metric('rmse', rmse)
         print(rmse)
         return rmse
+    
+    MLFLOW_URI = "https://mlflow.lewagon.co/"
+    EXPERIMENT_NAME = "[PT] [Lisbon] [gmatos51] TaxiFareModel + 1"
 
+    @memoized_property
+    def mlflow_client(self):
+        mlflow.set_tracking_uri(self.MLFLOW_URI)
+        return MlflowClient()
+
+    @memoized_property
+    def mlflow_experiment_id(self):
+        try:
+            return self.mlflow_client.create_experiment(self.EXPERIMENT_NAME)
+        except BaseException:
+            return self.mlflow_client.get_experiment_by_name(self.EXPERIMENT_NAME).experiment_id
+
+    @memoized_property
+    def mlflow_run(self):
+        return self.mlflow_client.create_run(self.mlflow_experiment_id)
+
+    def mlflow_log_param(self, key, value):
+        self.mlflow_client.log_param(self.mlflow_run.info.run_id, key, value)
+
+    def mlflow_log_metric(self, key, value):
+        self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
 if __name__ == "__main__":
     # get data
@@ -70,3 +99,7 @@ if __name__ == "__main__":
     trainer.run()
     # evaluate
     trainer.evaluate(X_test,y_test)
+
+experiment_id = trainer.mlflow_experiment_id
+
+print(f"experiment URL: https://mlflow.lewagon.co/#/experiments/{experiment_id}")

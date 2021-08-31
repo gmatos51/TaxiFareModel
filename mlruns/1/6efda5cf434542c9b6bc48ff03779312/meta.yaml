@@ -1,0 +1,15 @@
+artifact_uri: file:///home/gmatos/code/gmatos51/TaxiFareModel/mlruns/1/6efda5cf434542c9b6bc48ff03779312/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 6efda5cf434542c9b6bc48ff03779312
+run_uuid: 6efda5cf434542c9b6bc48ff03779312
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1630422668821
+status: 1
+tags: []
+user_id: unknown
