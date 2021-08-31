@@ -41,12 +41,13 @@ class Trainer():
 
     def run(self):
         """set and train the pipeline"""
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size = 0.2)
-        self.pipeline = self.set_pipeline().fit(self.X_train, self.y_train)
+        self.pipeline = self.set_pipeline().fit(X_train, y_train)
         return self.pipeline
 
     def evaluate(self, X_test, y_test):
         """evaluates the pipeline on df_test and return the RMSE"""
+        self.X_test = X_test
+        self.y_test = y_test
         y_pred = self.run().predict(self.X_test)
         rmse = compute_rmse(y_pred, self.y_test)
         print(rmse)
